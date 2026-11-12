@@ -10,17 +10,20 @@ local function paused()
   return false
 end
 
+print("Downloading...")
+local h = assert(http.get(url, nil, true))
+local data = h.readAll()
+h.close()
+print("Playing")
+
 while true do
   local decoder = dfpwm.make_decoder()
-  local h = assert(http.get(url, nil, true))
-  while true do
+  for pos = 1, #data, 4096 do
     if paused() then
       for _, s in ipairs(speakers) do s.stop() end
       while paused() do os.pullEvent("redstone") end
     end
-    local chunk = h.read(4 * 1024)
-    if not chunk then break end
-    local buffer = decoder(chunk)
+    local buffer = decoder(data:sub(pos, pos + 4095))
     local jobs = {}
     for _, s in ipairs(speakers) do
       jobs[#jobs + 1] = function()
@@ -31,5 +34,4 @@ while true do
     end
     parallel.waitForAll(table.unpack(jobs))
   end
-  h.close()
 end
