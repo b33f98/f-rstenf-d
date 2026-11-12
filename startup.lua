@@ -1,7 +1,8 @@
 local dfpwm = require("cc.audio.dfpwm")
 local url = "https://github.com/b33f98/f-rstenf-d/raw/refs/heads/main/S.T.S%20F%C3%BCrstenfeld%20HD.dfpwm"
-local volume = 3 -- 0 to 3, default is 1
+local volume = 3
 local speakers = { peripheral.find("speaker") }
+peripheral.find("modem", rednet.open)
 
 local function paused()
   for _, side in ipairs(rs.getSides()) do
@@ -18,12 +19,16 @@ print("Playing")
 
 while true do
   local decoder = dfpwm.make_decoder()
+  rednet.broadcast("reset", "music")
   for pos = 1, #data, 4096 do
     if paused() then
+      rednet.broadcast("reset", "music")
       for _, s in ipairs(speakers) do s.stop() end
       while paused() do os.pullEvent("redstone") end
     end
-    local buffer = decoder(data:sub(pos, pos + 4095))
+    local chunk = data:sub(pos, pos + 4095)
+    rednet.broadcast(chunk, "music")
+    local buffer = decoder(chunk)
     local jobs = {}
     for _, s in ipairs(speakers) do
       jobs[#jobs + 1] = function()
