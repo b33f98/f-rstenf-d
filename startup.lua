@@ -11,6 +11,11 @@ local function paused()
   return false
 end
 
+local function resetAll()
+  rednet.broadcast("reset", "music")
+  for _, s in ipairs(speakers) do s.stop() end
+end
+
 print("Downloading...")
 local h = assert(http.get(url, nil, true))
 local data = h.readAll()
@@ -19,11 +24,10 @@ print("Playing")
 
 while true do
   local decoder = dfpwm.make_decoder()
-  rednet.broadcast("reset", "music")
+  resetAll()
   for pos = 1, #data, 4096 do
     if paused() then
-      rednet.broadcast("reset", "music")
-      for _, s in ipairs(speakers) do s.stop() end
+      resetAll()
       while paused() do os.pullEvent("redstone") end
     end
     local chunk = data:sub(pos, pos + 4095)
@@ -39,4 +43,5 @@ while true do
     end
     parallel.waitForAll(table.unpack(jobs))
   end
+  sleep(3) -- let the end of the song finish before looping
 end
